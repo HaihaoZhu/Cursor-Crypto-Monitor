@@ -22,7 +22,7 @@ jobs:
       - name: 安装依赖
         run: pip install -r requirements.txt
 
-      # 核心：使用缓存保留 last_status.json，实现信号去重（仅恢复，避免与下方 save 重复）
+      # 使用缓存保留 last_status.json，供下次运行与本次扫描对比（白底/浅黄底）
       - name: 恢复状态缓存
         uses: actions/cache/restore@v3
         with:

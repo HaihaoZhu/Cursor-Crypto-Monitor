@@ -20,7 +20,27 @@ from strategy import (
 
 LAST_STATUS_PATH = Path(__file__).resolve().parent / "last_status.json"
 _FETCH_LIMIT = max(TREND_SCAN_MIN_BARS, 100)
-_MAIL_SUBJECT = "Crypto Monitor 信号变更"
+_MAIL_SUBJECT = "Crypto Monitor 15分钟快照"
+
+
+def _load_last_snapshots(raw: dict) -> dict[str, dict[str, object]]:
+    """解析 last_status.json：支持新格式 {sym: {tags, price}} 与旧格式 {sym: [tags...]}。"""
+    out: dict[str, dict[str, object]] = {}
+    for k, v in raw.items():
+        if not isinstance(k, str):
+            continue
+        if isinstance(v, list) and all(isinstance(x, str) for x in v):
+            out[k] = {"tags": list(v), "price": ""}
+        elif isinstance(v, dict):
+            tags = v.get("tags", [])
+            if not isinstance(tags, list):
+                tags = []
+            tags = [x for x in tags if isinstance(x, str)]
+            p = v.get("price", "")
+            out[k] = {"tags": tags, "price": p if isinstance(p, str) else ""}
+        else:
+            out[k] = {"tags": [], "price": ""}
+    return out
 
 
 def _detection_time_parts(at_utc: datetime) -> tuple[str, str]:
@@ -59,6 +79,8 @@ def _build_email_bodies(
     last_close: dict[str, float | None],
     current_status: dict[str, list[str]],
     changed_symbols: set[str],
+    *,
+    any_changed: bool,
 ) -> tuple[str, str]:
     plain_head, html_head = _detection_time_parts(at_utc)
 
@@ -101,8 +123,11 @@ def _build_email_bodies(
 
     changed_sorted = ", ".join(sorted(changed_symbols))
     plain_lines.append("")
-    plain_lines.append("本次推送触发原因：上述表格中浅黄底色表格相对上次有变动")
-    plain_lines.append(changed_sorted)
+    if any_changed:
+        plain_lines.append("说明：浅黄底行为相对上次扫描有变动（价格展示或 EMA/成交量信号）；白底为与上次一致。")
+        plain_lines.append(f"有变动的交易对：{changed_sorted}")
+    else:
+        plain_lines.append("说明：本次相对上次扫描无变动，表格均为白底。")
     plain_body = "\n".join(plain_lines)
 
     table = (
@@ -116,10 +141,16 @@ def _build_email_bodies(
         + "".join(rows_html)
         + "</tbody></table>"
     )
+    if any_changed:
+        foot_note = (
+            "说明：浅黄底行为相对上次扫描有变动（价格展示或 EMA/成交量信号）；白底为与上次一致。<br/>"
+            f"<span style='font-size:12px;color:#666'>有变动：{escape(changed_sorted)}</span>"
+        )
+    else:
+        foot_note = "说明：本次相对上次扫描无变动，表格均为白底。"
     foot = (
         f'<p style="margin:14px 0 0 0;font-size:13px;color:#555;text-align:center;line-height:1.6">'
-        f"本次推送触发原因：上述表格中浅黄底色表格相对上次有变动<br/>"
-        f"<span style='font-size:12px;color:#666'>{escape(changed_sorted)}</span></p>"
+        f"{foot_note}</p>"
     )
     html_body = (
         '<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
@@ -132,20 +163,14 @@ def _build_email_bodies(
 def main() -> None:
     load_config()
 
-    last_status: dict[str, list[str]] = {}
+    last_snapshots: dict[str, dict[str, object]] = {}
     if LAST_STATUS_PATH.is_file():
         try:
             raw = json.loads(LAST_STATUS_PATH.read_text(encoding="utf-8"))
             if isinstance(raw, dict):
-                for k, v in raw.items():
-                    if not isinstance(k, str):
-                        continue
-                    if isinstance(v, list) and all(isinstance(x, str) for x in v):
-                        last_status[k] = list(v)
-                    else:
-                        last_status[k] = []
+                last_snapshots = _load_last_snapshots(raw)
         except (json.JSONDecodeError, OSError):
-            last_status = {}
+            last_snapshots = {}
 
     provider = OKXProvider()
     current_status: dict[str, list[str]] = {}
@@ -162,21 +187,33 @@ def main() -> None:
 
     changed_symbols: set[str] = set()
     for sym in DEFAULT_MARKET_SYMBOLS:
-        if current_status[sym] != last_status.get(sym, []):
+        prev = last_snapshots.get(sym, {"tags": [], "price": ""})
+        prev_tags = prev.get("tags", []) if isinstance(prev.get("tags"), list) else []
+        prev_tags = [x for x in prev_tags if isinstance(x, str)]
+        prev_price = prev.get("price", "")
+        if not isinstance(prev_price, str):
+            prev_price = ""
+        price_s = _fmt_price(last_close.get(sym))
+        if current_status[sym] != prev_tags or price_s != prev_price:
             changed_symbols.add(sym)
 
-    if not changed_symbols:
-        return
-
+    any_changed = bool(changed_symbols)
     text_body, html_body = _build_email_bodies(
         detected_at_utc,
         last_close,
         current_status,
         changed_symbols,
+        any_changed=any_changed,
     )
     send_email(_MAIL_SUBJECT, text_body, html_body=html_body)
 
-    ordered = {sym: list(current_status[sym]) for sym in DEFAULT_MARKET_SYMBOLS}
+    ordered = {
+        sym: {
+            "tags": list(current_status[sym]),
+            "price": _fmt_price(last_close.get(sym)),
+        }
+        for sym in DEFAULT_MARKET_SYMBOLS
+    }
     LAST_STATUS_PATH.write_text(
         json.dumps(ordered, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
