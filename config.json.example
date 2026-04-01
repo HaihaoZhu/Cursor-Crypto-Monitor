@@ -1,0 +1,12 @@
+{
+  "okx": {
+    "api_key": "",
+    "api_secret": "",
+    "passphrase": ""
+  },
+  "qq_mail": {
+    "account": "你的QQ邮箱@qq.com",
+    "auth_code": "SMTP授权码（非QQ密码）",
+    "to": "收件人邮箱，可与发件相同或填其他邮箱"
+  }
+}

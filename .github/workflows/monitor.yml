@@ -1,0 +1,50 @@
+# 路径：.github/workflows/monitor.yml
+name: Crypto-Monitor-Task
+
+on:
+  schedule:
+    - cron: "*/15 * * * *" # 每 15 分钟运行一次
+  workflow_dispatch: # 允许你在网页上手动点击运行测试
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检查代码
+        uses: actions/checkout@v3
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      # 核心：使用缓存保留 last_status.json，实现信号去重（仅恢复，避免与下方 save 重复）
+      - name: 恢复状态缓存
+        uses: actions/cache/restore@v3
+        with:
+          path: last_status.json
+          key: crypto-status-${{ github.run_id }}
+          restore-keys: |
+            crypto-status-
+
+      - name: 运行监控脚本
+        env:
+          # 与 config_loader 中 os.getenv 名称一致（本仓库用 QQ 邮箱发信，非 PushPlus）
+          OKX_API_KEY: ${{ secrets.OKX_API_KEY }}
+          OKX_API_SECRET: ${{ secrets.OKX_API_SECRET }}
+          OKX_PASSPHRASE: ${{ secrets.OKX_PASSPHRASE }}
+          QQ_MAIL_ACCOUNT: ${{ secrets.QQ_MAIL_ACCOUNT }}
+          QQ_MAIL_AUTH_CODE: ${{ secrets.QQ_MAIL_AUTH_CODE }}
+          QQ_MAIL_TO: ${{ secrets.QQ_MAIL_TO }}
+        run: python main.py
+
+      # 运行结束后，把最新的状态存入缓存
+      - name: 保存状态缓存
+        if: hashFiles('last_status.json') != ''
+        uses: actions/cache/save@v3
+        with:
+          path: last_status.json
+          key: crypto-status-${{ github.run_id }}
