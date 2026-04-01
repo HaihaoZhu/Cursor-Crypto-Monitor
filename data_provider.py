@@ -174,9 +174,9 @@ if __name__ == "__main__":
         okx_api_key="-",
         okx_api_secret="-",
         okx_passphrase="-",
-        qq_mail_account="-",
-        qq_mail_auth_code="-",
-        qq_mail_to="-",
+        mail_163_account="-",
+        mail_163_auth_code="-",
+        mail_163_to="-",
     )
     _btc_only: tuple[str, ...] = ("BTC-USDT",)
     _n = 5

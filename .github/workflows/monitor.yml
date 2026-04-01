@@ -38,9 +38,9 @@ jobs:
           OKX_API_SECRET: ${{ secrets.OKX_API_SECRET }}
           OKX_SECRET_KEY: ${{ secrets.OKX_SECRET_KEY }}
           OKX_PASSPHRASE: ${{ secrets.OKX_PASSPHRASE }}
-          QQ_MAIL_ACCOUNT: ${{ secrets.QQ_MAIL_ACCOUNT }}
-          QQ_MAIL_AUTH_CODE: ${{ secrets.QQ_MAIL_AUTH_CODE }}
-          QQ_MAIL_TO: ${{ secrets.QQ_MAIL_TO }}
+          MAIL_163_ACCOUNT: ${{ secrets.MAIL_163_ACCOUNT }}
+          MAIL_163_AUTH_CODE: ${{ secrets.MAIL_163_AUTH_CODE }}
+          MAIL_163_TO: ${{ secrets.MAIL_163_TO }}
         run: python main.py
 
       # 运行结束后，把最新的状态存入缓存

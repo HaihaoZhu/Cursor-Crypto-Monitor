@@ -4,9 +4,9 @@
     "api_secret": "",
     "passphrase": ""
   },
-  "qq_mail": {
-    "account": "你的QQ邮箱@qq.com",
-    "auth_code": "SMTP授权码（非QQ密码）",
+  "mail_163": {
+    "account": "你的163邮箱@163.com",
+    "auth_code": "163 客户端授权密码（非登录密码，在邮箱设置中开启 SMTP 并生成）",
     "to": "收件人邮箱，可与发件相同或填其他邮箱"
   }
 }
