@@ -33,9 +33,10 @@ jobs:
 
       - name: 运行监控脚本
         env:
-          # 与 config_loader 中 os.getenv 名称一致（本仓库用 QQ 邮箱发信，非 PushPlus）
+          # 须在仓库 Settings → Secrets → Actions 中创建同名 Repository secrets（缺一则为空，load_config 会报错）
           OKX_API_KEY: ${{ secrets.OKX_API_KEY }}
           OKX_API_SECRET: ${{ secrets.OKX_API_SECRET }}
+          OKX_SECRET_KEY: ${{ secrets.OKX_SECRET_KEY }}
           OKX_PASSPHRASE: ${{ secrets.OKX_PASSPHRASE }}
           QQ_MAIL_ACCOUNT: ${{ secrets.QQ_MAIL_ACCOUNT }}
           QQ_MAIL_AUTH_CODE: ${{ secrets.QQ_MAIL_AUTH_CODE }}

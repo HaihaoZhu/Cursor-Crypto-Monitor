@@ -11,6 +11,8 @@ from pathlib import Path
 # 环境变量名（与 OKX / QQ 邮箱、GitHub Actions Secrets 一致）
 ENV_OKX_API_KEY = "OKX_API_KEY"
 ENV_OKX_API_SECRET = "OKX_API_SECRET"
+# 部分教程使用此名；与 OKX_API_SECRET 二选一即可
+ENV_OKX_SECRET_KEY_ALT = "OKX_SECRET_KEY"
 ENV_OKX_PASSPHRASE = "OKX_PASSPHRASE"
 ENV_QQ_MAIL_ACCOUNT = "QQ_MAIL_ACCOUNT"
 ENV_QQ_MAIL_AUTH_CODE = "QQ_MAIL_AUTH_CODE"
@@ -85,6 +87,8 @@ def load_config(config_path: Path | None = None) -> AppConfig:
 
     okx_key = _resolve(ENV_OKX_API_KEY, file_root, "okx", "api_key")
     okx_secret = _resolve(ENV_OKX_API_SECRET, file_root, "okx", "api_secret")
+    if not okx_secret:
+        okx_secret = _strip_or_none(os.getenv(ENV_OKX_SECRET_KEY_ALT))
     okx_pass = _resolve(ENV_OKX_PASSPHRASE, file_root, "okx", "passphrase")
     qq_account = _resolve(ENV_QQ_MAIL_ACCOUNT, file_root, "qq_mail", "account")
     qq_auth = _resolve(ENV_QQ_MAIL_AUTH_CODE, file_root, "qq_mail", "auth_code")
@@ -94,7 +98,9 @@ def load_config(config_path: Path | None = None) -> AppConfig:
     if not okx_key:
         missing.append(f"{ENV_OKX_API_KEY} 或 okx.api_key")
     if not okx_secret:
-        missing.append(f"{ENV_OKX_API_SECRET} 或 okx.api_secret")
+        missing.append(
+            f"{ENV_OKX_API_SECRET}（或 {ENV_OKX_SECRET_KEY_ALT}）或 okx.api_secret"
+        )
     if not okx_pass:
         missing.append(f"{ENV_OKX_PASSPHRASE} 或 okx.passphrase")
     if not qq_account:
@@ -105,10 +111,17 @@ def load_config(config_path: Path | None = None) -> AppConfig:
         missing.append(f"{ENV_QQ_MAIL_TO} 或 qq_mail.to")
 
     if missing:
-        raise ValueError(
+        msg = (
             "以下配置未设置（请设置对应环境变量，或在 config.json 中填写）：\n  - "
             + "\n  - ".join(missing)
         )
+        if os.getenv("GITHUB_ACTIONS") == "true":
+            msg += (
+                "\n\n若在 GitHub Actions 中运行：请到仓库 "
+                "Settings → Secrets and variables → Actions → New repository secret，"
+                "名称须与上述环境变量名完全一致（含 QQ_MAIL_*）。"
+            )
+        raise ValueError(msg)
 
     return AppConfig(
         okx_api_key=okx_key,
