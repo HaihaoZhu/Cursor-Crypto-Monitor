@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检查代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.9"
 
@@ -24,7 +24,7 @@ jobs:
 
       # 使用缓存保留 last_status.json，供下次运行与本次扫描对比（白底/浅黄底）
       - name: 恢复状态缓存
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: last_status.json
           key: crypto-status-${{ github.run_id }}
@@ -46,7 +46,7 @@ jobs:
       # 运行结束后，把最新的状态存入缓存
       - name: 保存状态缓存
         if: hashFiles('last_status.json') != ''
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: last_status.json
           key: crypto-status-${{ github.run_id }}
