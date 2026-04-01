@@ -46,10 +46,15 @@ def _validate_addresses(label: str, addrs: list[str]) -> None:
         )
 
 
-def send_email(subject: str, content: str) -> None:
+def send_email(
+    subject: str,
+    text_body: str,
+    *,
+    html_body: str | None = None,
+) -> None:
     """
-    使用 smtplib 经 163 邮箱（SMTP SSL 465）发送纯文本邮件。
-    发件人、授权码、收件人从 ``config_loader.load_config()`` 读取。
+    使用 smtplib 经 163 邮箱（SMTP SSL 465）发送邮件。
+    若提供 ``html_body``，则为 multipart/alternative（纯文本 + HTML），客户端优先显示表格等样式。
     """
     cfg = load_config()
     sender = _strip_one_address(cfg.mail_163_account)
@@ -67,7 +72,9 @@ def send_email(subject: str, content: str) -> None:
     msg["Subject"] = subject
     msg["From"] = sender
     msg["To"] = ", ".join(to_list)
-    msg.set_content(content, charset="utf-8")
+    msg.set_content(text_body, charset="utf-8")
+    if html_body:
+        msg.add_alternative(html_body, subtype="html")
 
     try:
         with smtplib.SMTP_SSL(

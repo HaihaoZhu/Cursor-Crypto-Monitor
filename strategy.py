@@ -9,6 +9,31 @@ import pandas as pd
 # 与 TrendScanner 约定：至少该根数再输出标签，避免 EMA/MA10 未稳定
 TREND_SCAN_MIN_BARS = 30
 
+# 邮件表格「EMA情况」列：仅展示与均线/价位相关的标签（不含成交量）
+EMA_TABLE_TAGS: frozenset[str] = frozenset(
+    {
+        "价格高于8EMA",
+        "价格低于8EMA",
+        "8>12",
+        "8>21",
+        "12>21",
+        "12>8",
+    }
+)
+
+
+def format_ema_table_cell(tags: list[str]) -> str:
+    """邮件表格「EMA情况」列；无均线类标签时为「—」。"""
+    ema_parts = [t for t in tags if t in EMA_TABLE_TAGS]
+    return ", ".join(ema_parts) if ema_parts else "—"
+
+
+def format_volume_table_cell(tags: list[str]) -> str:
+    """邮件表格「成交量情况」列：有「成交量激增」标签则为上升，否则正常。"""
+    if "成交量激增" in tags:
+        return "成交量上升"
+    return "正常"
+
 
 def evaluate(data: pd.DataFrame) -> dict[str, Any]:
     """
