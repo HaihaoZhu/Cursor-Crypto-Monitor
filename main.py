@@ -14,7 +14,7 @@ from notifier import send_email
 from strategy import (
     TREND_SCAN_MIN_BARS,
     TrendScanner,
-    format_ema_table_cell,
+    format_ema_table_lines,
     format_volume_table_cell,
 )
 
@@ -41,7 +41,7 @@ def _detection_time_parts(at_utc: datetime) -> tuple[str, str]:
         "\n"
     )
     html = (
-        f'<p style="margin:0 0 14px 0;font-size:14px;line-height:1.5">'
+        f'<p style="margin:0 0 14px 0;font-size:14px;line-height:1.5;text-align:center">'
         f"检测时间：<strong>{escape(cn_s)}</strong>（{escape(cn_note)}）<br/>"
         f"UTC：<strong>{escape(utc_s)}</strong></p>"
     )
@@ -68,51 +68,62 @@ def _build_email_bodies(
     ]
     rows_html: list[str] = []
 
+    td = "padding:8px 12px;border:1px solid #ddd;text-align:center;vertical-align:middle"
+    th = "padding:10px 12px;border:1px solid #ccc;text-align:center"
+
     for sym in DEFAULT_MARKET_SYMBOLS:
         price_s = _fmt_price(last_close.get(sym))
         tags = current_status[sym]
-        ema_text = format_ema_table_cell(tags)
+        ema_ma, ema_price = format_ema_table_lines(tags)
         vol_text = format_volume_table_cell(tags)
-        plain_lines.append(f"{sym}\t{price_s}\t{ema_text}\t{vol_text}")
+        plain_lines.append(
+            f"{sym}\t{price_s}\t[8/12/21]{ema_ma}；[价/EMA]{ema_price}\t{vol_text}"
+        )
 
-        ema_html = escape(ema_text)
+        ema_html = (
+            f'<div style="line-height:1.5;text-align:center">'
+            f"<div>{escape(ema_ma)}</div>"
+            f'<div style="margin-top:6px">{escape(ema_price)}</div>'
+            "</div>"
+        )
         vol_html = escape(vol_text)
         if vol_text == "成交量上升":
             vol_html = f'<span style="color:#c05621;font-weight:600">{vol_html}</span>'
         row_bg = "#fff8e6" if sym in changed_symbols else "#ffffff"
         rows_html.append(
             f'<tr style="background:{row_bg}">'
-            f"<td style='padding:8px 12px;border:1px solid #ddd'>{escape(sym)}</td>"
-            f"<td style='padding:8px 12px;border:1px solid #ddd;text-align:right'>{escape(price_s)}</td>"
-            f"<td style='padding:8px 12px;border:1px solid #ddd'>{ema_html}</td>"
-            f"<td style='padding:8px 12px;border:1px solid #ddd'>{vol_html}</td>"
+            f"<td style='{td}'>{escape(sym)}</td>"
+            f"<td style='{td}'>{escape(price_s)}</td>"
+            f"<td style='{td}'>{ema_html}</td>"
+            f"<td style='{td}'>{vol_html}</td>"
             "</tr>"
         )
 
     changed_sorted = ", ".join(sorted(changed_symbols))
     plain_lines.append("")
-    plain_lines.append(f"本次信号相对上次有变动的交易对：{changed_sorted}")
+    plain_lines.append("本次推送触发原因：上述表格中浅黄底色表格相对上次有变动")
+    plain_lines.append(changed_sorted)
     plain_body = "\n".join(plain_lines)
 
     table = (
-        '<table style="border-collapse:collapse;font-size:14px;min-width:640px">'
+        '<table style="border-collapse:collapse;font-size:14px;min-width:640px;margin:0 auto">'
         "<thead><tr style='background:#f0f4f8'>"
-        "<th style='padding:10px 12px;border:1px solid #ccc;text-align:left'>Crypto</th>"
-        "<th style='padding:10px 12px;border:1px solid #ccc;text-align:right'>检测价格</th>"
-        "<th style='padding:10px 12px;border:1px solid #ccc;text-align:left'>EMA情况</th>"
-        "<th style='padding:10px 12px;border:1px solid #ccc;text-align:left'>成交量情况</th>"
+        f"<th style='{th}'>Crypto</th>"
+        f"<th style='{th}'>检测价格</th>"
+        f"<th style='{th}'>EMA情况</th>"
+        f"<th style='{th}'>成交量情况</th>"
         "</tr></thead><tbody>"
         + "".join(rows_html)
         + "</tbody></table>"
     )
     foot = (
-        f'<p style="margin:14px 0 0 0;font-size:13px;color:#555">'
-        f"本次推送触发原因：上述表格中 <strong>浅黄底色</strong> 行为信号相对上次有变动的交易对。"
-        f"<br/>变动列表：{escape(changed_sorted)}</p>"
+        f'<p style="margin:14px 0 0 0;font-size:13px;color:#555;text-align:center;line-height:1.6">'
+        f"本次推送触发原因：上述表格中浅黄底色表格相对上次有变动<br/>"
+        f"<span style='font-size:12px;color:#666'>{escape(changed_sorted)}</span></p>"
     )
     html_body = (
         '<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
-        '<body style="font-family:Segoe UI,PingFang SC,Microsoft YaHei,Arial,sans-serif">'
+        '<body style="font-family:Segoe UI,PingFang SC,Microsoft YaHei,Arial,sans-serif;text-align:center">'
         f"{html_head}{table}{foot}</body></html>"
     )
     return plain_body, html_body

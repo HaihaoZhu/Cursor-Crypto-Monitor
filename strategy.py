@@ -9,23 +9,26 @@ import pandas as pd
 # 与 TrendScanner 约定：至少该根数再输出标签，避免 EMA/MA10 未稳定
 TREND_SCAN_MIN_BARS = 30
 
-# 邮件表格「EMA情况」列：仅展示与均线/价位相关的标签（不含成交量）
-EMA_TABLE_TAGS: frozenset[str] = frozenset(
-    {
-        "价格高于8EMA",
-        "价格低于8EMA",
-        "8>12",
-        "8>21",
-        "12>21",
-        "12>8",
-    }
+# 邮件「EMA情况」列：均线间关系（8/12/21）与价格相对 EMA8，分两行展示
+EMA_MA_RELATION_TAGS: frozenset[str] = frozenset(
+    {"8>12", "8>21", "12>21", "12>8"},
 )
+EMA_PRICE_VS_TAGS: frozenset[str] = frozenset(
+    {"价格高于8EMA", "价格低于8EMA"},
+)
+EMA_TABLE_TAGS: frozenset[str] = EMA_MA_RELATION_TAGS | EMA_PRICE_VS_TAGS
 
 
-def format_ema_table_cell(tags: list[str]) -> str:
-    """邮件表格「EMA情况」列；无均线类标签时为「—」。"""
-    ema_parts = [t for t in tags if t in EMA_TABLE_TAGS]
-    return ", ".join(ema_parts) if ema_parts else "—"
+def format_ema_table_lines(tags: list[str]) -> tuple[str, str]:
+    """
+    返回 (8/12/21 均线关系文案, 价格与 EMA8 关系文案)。
+    顺序与 ``TrendScanner.get_signals`` 返回列表一致（已排序）。
+    """
+    ma_parts = [t for t in tags if t in EMA_MA_RELATION_TAGS]
+    price_parts = [t for t in tags if t in EMA_PRICE_VS_TAGS]
+    line_ma = ", ".join(ma_parts) if ma_parts else "—"
+    line_price = ", ".join(price_parts) if price_parts else "—"
+    return line_ma, line_price
 
 
 def format_volume_table_cell(tags: list[str]) -> str:
