@@ -2,10 +2,18 @@
 name: Crypto-Monitor-Task
 
 # YAML 1.1 会把裸关键字 on 解析成布尔 true，导致 Actions 识别不到触发器；必须加引号
+#
+# 关于 schedule：GitHub 不保证严格每 15 分钟执行，高负载时可能延迟 30 分钟以上；
+# 且整点前后负载高，官方文档建议错峰。故使用 7,22,37,52 分（UTC）而非 */15。
+# 若仍长时间无运行：仓库 Actions 里确认本 workflow 未被 Disable；公开库 60 天无活动会停定时，需再 push。
+# 可靠方案：用 PAT + curl 每 15 分钟触发 workflow_dispatch，或下面 repository_dispatch。
+# 文档：https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
 "on":
   schedule:
-    - cron: "*/15 * * * *" # 每 15 分钟运行一次
-  workflow_dispatch: # 允许你在网页上手动点击运行测试
+    - cron: "7,22,37,52 * * * *" # 约每 15 分钟（UTC），错峰整点
+  workflow_dispatch: # 网页手动 / API: .../actions/workflows/monitor.yml/dispatches
+  repository_dispatch:
+    types: [monitor-tick] # 外部: POST .../repos/OWNER/REPO/dispatches，event_type=monitor-tick
 
 jobs:
   build-and-run:
