@@ -1,7 +1,8 @@
 # 路径：.github/workflows/monitor.yml
 name: Crypto-Monitor-Task
 
-on:
+# YAML 1.1 会把裸关键字 on 解析成布尔 true，导致 Actions 识别不到触发器；必须加引号
+"on":
   schedule:
     - cron: "*/15 * * * *" # 每 15 分钟运行一次
   workflow_dispatch: # 允许你在网页上手动点击运行测试
