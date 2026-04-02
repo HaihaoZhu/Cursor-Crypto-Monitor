@@ -6,7 +6,7 @@
   },
   "mail_163": {
     "account": "你的163邮箱@163.com",
-    "auth_code": "163 客户端授权密码（非登录密码，在邮箱设置中开启 SMTP 并生成）",
+    "auth_code": "163「客户端授权密码」；须开启 SMTP；若报 535 User has no permission 请重置授权码并更新 Secret",
     "to": "收件人邮箱，可与发件相同或填其他邮箱"
   }
 }

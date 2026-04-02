@@ -84,6 +84,17 @@ def send_email(
         ) as smtp:
             smtp.login(sender, password)
             smtp.send_message(msg)
+    except smtplib.SMTPAuthenticationError as e:
+        # 163 常见：535 b'User has no permission' — 授权码失效、未开 SMTP、或误用登录密码
+        raise RuntimeError(
+            "163 SMTP 登录被拒（如 535 User has no permission）。请按顺序处理：\n"
+            "1) 浏览器登录 163 网页邮箱 → 设置 → POP3/SMTP/IMAP → 打开「SMTP服务」；\n"
+            "2) 在同一页「客户端授权密码」处生成或重置授权码（不是邮箱登录密码）；\n"
+            "3) 若刚做过安全验证/改密，旧授权码会失效，必须用新授权码；\n"
+            "4) GitHub：Settings → Secrets → Actions → 更新 MAIL_163_AUTH_CODE（纯授权码，无空格、无引号）；\n"
+            "5) MAIL_163_ACCOUNT 须为完整地址，如 name@163.com。\n"
+            f"原始错误: {e!r}"
+        ) from e
     except smtplib.SMTPDataError as e:
         raise RuntimeError(
             "163 SMTP 拒收（常见为收件人无效或授权码错误）。请检查：\n"
